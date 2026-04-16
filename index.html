@@ -1,0 +1,1385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2026 Personal Tracker</title>
+  <style>
+    :root {
+      --bg: #f5efe3;
+      --panel: rgba(255, 250, 240, 0.88);
+      --panel-strong: #fffaf1;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --line: rgba(31, 41, 55, 0.1);
+      --accent: #0f766e;
+      --accent-soft: #d7f3ee;
+      --gold: #c68a2d;
+      --gold-soft: #faecd3;
+      --blue: #1d4ed8;
+      --blue-soft: #dbeafe;
+      --rose: #be5b50;
+      --rose-soft: #f7dfdb;
+      --shadow: 0 18px 45px rgba(73, 55, 30, 0.12);
+      --radius: 24px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(198, 138, 45, 0.16), transparent 28%),
+        radial-gradient(circle at top right, rgba(15, 118, 110, 0.14), transparent 24%),
+        linear-gradient(180deg, #fbf7ef 0%, #f4ebdb 100%);
+      min-height: 100vh;
+    }
+
+    .shell {
+      width: min(1180px, calc(100% - 32px));
+      margin: 32px auto 48px;
+    }
+
+    .hero {
+      padding: 36px;
+      border-radius: 32px;
+      background:
+        linear-gradient(135deg, rgba(255, 250, 241, 0.98), rgba(248, 241, 225, 0.94)),
+        linear-gradient(180deg, rgba(0, 0, 0, 0.03), rgba(0, 0, 0, 0));
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(255, 255, 255, 0.65);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: auto -40px -40px auto;
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(198, 138, 45, 0.18), transparent 65%);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2.2rem, 4vw, 4.6rem);
+      line-height: 0.95;
+    }
+
+    .tracker-stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+
+    .stat {
+      padding: 18px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(31, 41, 55, 0.07);
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 1.9rem;
+      margin-bottom: 4px;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .evolution-card .tracker-stats {
+      margin-top: 18px;
+    }
+
+    .evolution-card .stat {
+      background: rgba(255, 255, 255, 0.09);
+      border-color: rgba(255, 255, 255, 0.13);
+    }
+
+    .evolution-card .stat span {
+      color: #cbd5e1;
+    }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 24px;
+      margin-top: 26px;
+    }
+
+    .stack {
+      display: grid;
+      gap: 20px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border-radius: var(--radius);
+      padding: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.72);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+    }
+
+    .panel h2,
+    .panel h3 {
+      margin: 0;
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 0.88rem;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(31, 41, 55, 0.08);
+    }
+
+    .goal-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .goal-card {
+      padding: 20px;
+      border-radius: 24px;
+      border: 1px solid var(--line);
+      background: var(--panel-strong);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .goal-card.faith { background: linear-gradient(180deg, #fffdf7, #f1fbf8); }
+    .goal-card.image { background: linear-gradient(180deg, #fffaf5, #fdf0eb); }
+    .goal-card.money { background: linear-gradient(180deg, #fffef7, #faf2db); }
+    .goal-card.school { background: linear-gradient(180deg, #fbfdff, #edf5ff); }
+
+    .goal-card h3 {
+      font-size: 1.45rem;
+      margin-bottom: 8px;
+    }
+
+    .goal-card p {
+      margin: 0 0 16px;
+      color: #475569;
+      line-height: 1.55;
+    }
+
+    .progress-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 12px;
+      background: rgba(15, 23, 42, 0.08);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 14px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      transition: width 240ms ease;
+      background: linear-gradient(90deg, var(--accent), #34d399);
+    }
+
+    .goal-card.money .progress-fill {
+      background: linear-gradient(90deg, #a16207, #facc15);
+    }
+
+    .goal-card.school .progress-fill {
+      background: linear-gradient(90deg, #1d4ed8, #60a5fa);
+    }
+
+    .goal-card.image .progress-fill {
+      background: linear-gradient(90deg, #b45309, #fb7185);
+    }
+
+    .goal-card ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      gap: 10px;
+    }
+
+    .habit {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 10px 12px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.62);
+      border: 1px solid rgba(31, 41, 55, 0.06);
+    }
+
+    .habit input[type="checkbox"] {
+      flex: 0 0 auto;
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+      margin-top: 3px;
+      cursor: pointer;
+    }
+
+    .habit-text {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .habit-text strong {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      font-size: 0.98rem;
+      line-height: 1.25;
+    }
+
+    .habit-text span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+
+    .frequency {
+      display: inline-flex;
+      margin-left: 8px;
+      width: max-content;
+      max-width: max-content;
+      align-self: flex-start;
+      padding: 3px 7px;
+      border-radius: 999px;
+      color: #0f766e;
+      background: rgba(15, 118, 110, 0.1);
+      font-size: 0.66rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      line-height: 1;
+      white-space: nowrap;
+      text-transform: uppercase;
+    }
+
+    .field-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      width: max-content;
+    }
+
+    .field-title .frequency {
+      margin-left: 0;
+    }
+
+    .category-quote {
+      margin: 8px 0 16px;
+      padding: 13px 14px;
+      border-left: 4px solid rgba(15, 118, 110, 0.45);
+      border-radius: 12px;
+      color: #3f4a3f;
+      background: rgba(255, 255, 255, 0.58);
+      font-size: 0.92rem;
+      line-height: 1.5;
+    }
+
+    .week-list,
+    .money-grid,
+    .motivation-list {
+      display: grid;
+      gap: 14px;
+    }
+
+    .week-item,
+    .money-card,
+    .motivation-item {
+      padding: 16px 18px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid rgba(31, 41, 55, 0.08);
+    }
+
+    .week-item strong,
+    .money-card strong,
+    .motivation-item strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 1rem;
+    }
+
+    .week-item span,
+    .money-card span,
+    .motivation-item span,
+    .note {
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 0.95rem;
+    }
+
+    .money-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .money-inputs {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    label.field {
+      display: grid;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .field input {
+      width: 100%;
+      border: 1px solid rgba(31, 41, 55, 0.1);
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 14px;
+      padding: 12px 14px;
+      font: inherit;
+      color: var(--text);
+    }
+
+    .habit input[type="number"] {
+      width: 100%;
+      margin-top: 10px;
+      border: 1px solid rgba(31, 41, 55, 0.1);
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 14px;
+      padding: 12px 14px;
+      font: inherit;
+      color: var(--text);
+    }
+
+    .money-summary {
+      margin-top: 18px;
+      padding: 16px 18px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, var(--gold-soft), #fff8e8);
+      border: 1px solid rgba(198, 138, 45, 0.18);
+    }
+
+    .money-summary strong {
+      display: block;
+      font-size: 1.8rem;
+      margin-bottom: 6px;
+    }
+
+    .evolution-card {
+      background:
+        radial-gradient(circle at 50% 28%, rgba(37, 99, 235, 0.26), transparent 30%),
+        linear-gradient(145deg, #101827, #1f2937 54%, #111827);
+      color: white;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .evolution-card .pill {
+      color: #dbeafe;
+      background: rgba(255, 255, 255, 0.09);
+      border-color: rgba(255, 255, 255, 0.14);
+    }
+
+    .evolution-stage {
+      position: relative;
+      display: grid;
+      place-items: center;
+      min-height: 420px;
+      margin: 8px 0 16px;
+      border-radius: 22px;
+      background:
+        radial-gradient(circle at center, rgba(59, 130, 246, 0.24), transparent 34%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .stage-image-wrap {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      place-items: center;
+      width: min(100%, 360px);
+      transition: transform 220ms ease, filter 220ms ease;
+      filter: drop-shadow(0 22px 18px rgba(0, 0, 0, 0.34));
+    }
+
+    .stage-image {
+      display: block;
+      width: min(100%, 340px);
+      max-height: 390px;
+      object-fit: contain;
+      border-radius: 18px;
+      image-rendering: pixelated;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .evolution-card[data-form="1"] .stage-image-wrap { transform: scale(1.01); filter: drop-shadow(0 22px 18px rgba(79, 70, 229, 0.42)); }
+    .evolution-card[data-form="2"] .stage-image-wrap { transform: scale(1.02); filter: drop-shadow(0 22px 18px rgba(14, 165, 233, 0.48)); }
+    .evolution-card[data-form="3"] .stage-image-wrap { transform: scale(1.03); filter: drop-shadow(0 22px 18px rgba(147, 51, 234, 0.48)); }
+    .evolution-card[data-form="4"] .stage-image-wrap { transform: scale(1.04); filter: drop-shadow(0 22px 18px rgba(236, 72, 153, 0.48)); }
+    .evolution-card[data-form="5"] .stage-image-wrap { transform: scale(1.05); filter: drop-shadow(0 22px 18px rgba(59, 130, 246, 0.52)); }
+    .evolution-card[data-form="6"] .stage-image-wrap { transform: scale(1.06); filter: drop-shadow(0 22px 18px rgba(168, 85, 247, 0.54)); }
+    .evolution-card[data-form="7"] .stage-image-wrap { transform: scale(1.07); filter: drop-shadow(0 22px 18px rgba(34, 211, 238, 0.54)); }
+    .evolution-card[data-form="8"] .stage-image-wrap { transform: scale(1.08); filter: drop-shadow(0 22px 18px rgba(15, 23, 42, 0.58)); }
+    .evolution-card[data-form="9"] .stage-image-wrap { transform: scale(1.09); filter: drop-shadow(0 22px 18px rgba(250, 204, 21, 0.58)); }
+
+    .pixel-sasuke-wrap {
+      position: relative;
+      width: 208px;
+      height: 280px;
+      transform: scale(0.92);
+      transition: transform 220ms ease, filter 220ms ease;
+      filter: drop-shadow(0 22px 18px rgba(0, 0, 0, 0.32));
+      image-rendering: pixelated;
+    }
+
+    .evolution-card[data-form="1"] .pixel-sasuke-wrap { transform: scale(0.96); filter: drop-shadow(0 22px 18px rgba(79, 70, 229, 0.42)); }
+    .evolution-card[data-form="2"] .pixel-sasuke-wrap { transform: scale(1); filter: drop-shadow(0 22px 18px rgba(14, 165, 233, 0.48)); }
+    .evolution-card[data-form="3"] .pixel-sasuke-wrap { transform: scale(1.04); filter: drop-shadow(0 22px 18px rgba(236, 72, 153, 0.48)); }
+    .evolution-card[data-form="4"] .pixel-sasuke-wrap { transform: scale(1.08); filter: drop-shadow(0 22px 18px rgba(250, 204, 21, 0.5)); }
+
+    .pixel-sasuke {
+      position: absolute;
+      left: 38px;
+      top: 18px;
+      width: 8px;
+      height: 8px;
+      background: transparent;
+      box-shadow:
+        56px 0 #050505, 64px 0 #050505,
+        40px 8px #050505, 48px 8px #050505, 56px 8px #0b34ff, 64px 8px #0b34ff, 72px 8px #050505,
+        24px 16px #050505, 32px 16px #050505, 40px 16px #0b34ff, 48px 16px #0b34ff, 56px 16px #0b34ff, 64px 16px #0b34ff, 72px 16px #050505, 80px 16px #050505,
+        16px 24px #050505, 24px 24px #0b34ff, 32px 24px #0b34ff, 40px 24px #0b34ff, 48px 24px #0b34ff, 56px 24px #0b34ff, 64px 24px #0b34ff, 72px 24px #050505,
+        8px 32px #050505, 16px 32px #0b34ff, 24px 32px #0b34ff, 32px 32px #0b34ff, 40px 32px #050505, 48px 32px #050505, 56px 32px #0b34ff, 64px 32px #050505, 72px 32px #050505,
+        8px 40px #050505, 16px 40px #0b34ff, 24px 40px #0b34ff, 32px 40px #050505, 40px 40px #f7cf7b, 48px 40px #050505, 56px 40px #f7cf7b, 64px 40px #050505, 72px 40px #050505,
+        16px 48px #050505, 24px 48px #0b34ff, 32px 48px #050505, 40px 48px #f7cf7b, 48px 48px #f7cf7b, 56px 48px #f7cf7b, 64px 48px #050505, 72px 48px #050505,
+        24px 56px #050505, 32px 56px #f7cf7b, 40px 56px #f7cf7b, 48px 56px #ffffff, 56px 56px #f7cf7b, 64px 56px #050505,
+        24px 64px #050505, 32px 64px #f7cf7b, 40px 64px #f7cf7b, 48px 64px #f7cf7b, 56px 64px #050505, 64px 64px #050505,
+        32px 72px #050505, 40px 72px #11d9ff, 48px 72px #f7cf7b, 56px 72px #f7cf7b, 64px 72px #050505,
+        24px 80px #050505, 32px 80px #11d9ff, 40px 80px #f7cf7b, 48px 80px #f7cf7b, 56px 80px #11d9ff, 64px 80px #11d9ff, 72px 80px #050505,
+        24px 88px #050505, 32px 88px #11d9ff, 40px 88px #f7cf7b, 48px 88px #f7cf7b, 56px 88px #11d9ff, 64px 88px #11d9ff, 72px 88px #11d9ff, 80px 88px #050505,
+        16px 96px #050505, 24px 96px #11d9ff, 32px 96px #11d9ff, 40px 96px #f7cf7b, 48px 96px #f7cf7b, 56px 96px #11d9ff, 64px 96px #11d9ff, 72px 96px #11d9ff, 80px 96px #050505,
+        16px 104px #050505, 24px 104px #11d9ff, 32px 104px #11d9ff, 40px 104px #050505, 48px 104px #0058ff, 56px 104px #11d9ff, 64px 104px #11d9ff, 72px 104px #11d9ff, 80px 104px #050505,
+        8px 112px #050505, 16px 112px #0058ff, 24px 112px #050505, 32px 112px #0058ff, 40px 112px #0058ff, 48px 112px #0058ff, 56px 112px #ff00d4, 64px 112px #ff00d4, 72px 112px #050505, 80px 112px #050505,
+        0 120px #050505, 8px 120px #0058ff, 16px 120px #0058ff, 24px 120px #050505, 32px 120px #0058ff, 40px 120px #ff00d4, 48px 120px #ff00d4, 56px 120px #ff00d4, 64px 120px #0058ff, 72px 120px #0058ff, 80px 120px #050505,
+        0 128px #050505, 8px 128px #0058ff, 16px 128px #050505, 24px 128px #050505, 32px 128px #0058ff, 40px 128px #0058ff, 48px 128px #ff00d4, 56px 128px #0058ff, 64px 128px #0058ff, 72px 128px #0058ff, 80px 128px #050505,
+        8px 136px #050505, 16px 136px #050505, 24px 136px #0058ff, 32px 136px #0058ff, 40px 136px #0058ff, 48px 136px #0058ff, 56px 136px #0058ff, 64px 136px #0058ff, 72px 136px #050505, 80px 136px #050505,
+        16px 144px #050505, 24px 144px #0058ff, 32px 144px #0058ff, 40px 144px #0058ff, 48px 144px #0058ff, 56px 144px #0058ff, 64px 144px #0058ff, 72px 144px #050505,
+        16px 152px #050505, 24px 152px #0058ff, 32px 152px #0058ff, 40px 152px #050505, 48px 152px #050505, 56px 152px #0058ff, 64px 152px #0058ff, 72px 152px #050505,
+        16px 160px #050505, 24px 160px #0058ff, 32px 160px #0058ff, 40px 160px #050505, 56px 160px #0058ff, 64px 160px #0058ff, 72px 160px #050505,
+        16px 168px #050505, 24px 168px #0058ff, 32px 168px #0058ff, 40px 168px #050505, 56px 168px #0058ff, 64px 168px #0058ff, 72px 168px #050505,
+        16px 176px #050505, 24px 176px #0058ff, 32px 176px #050505, 56px 176px #050505, 64px 176px #0058ff, 72px 176px #050505,
+        8px 184px #050505, 16px 184px #f7cf7b, 24px 184px #050505, 56px 184px #050505, 64px 184px #f7cf7b, 72px 184px #050505,
+        0 192px #050505, 8px 192px #f7cf7b, 16px 192px #f7cf7b, 24px 192px #050505, 56px 192px #050505, 64px 192px #f7cf7b, 72px 192px #f7cf7b, 80px 192px #050505,
+        -8px 200px #050505, 0 200px #050505, 8px 200px #050505, 16px 200px #050505, 24px 200px #050505, 56px 200px #050505, 64px 200px #050505, 72px 200px #050505, 80px 200px #050505,
+        88px 112px #050505, 96px 120px #050505, 104px 128px #050505, 112px 136px #050505, 120px 144px #050505, 128px 152px #050505;
+    }
+
+    .aura {
+      position: absolute;
+      inset: 18px;
+      border-radius: 50%;
+      background: conic-gradient(from 90deg, transparent, rgba(59, 130, 246, 0.34), transparent, rgba(190, 24, 93, 0.34), transparent);
+      animation: pulseAura 3.6s ease-in-out infinite;
+    }
+
+    .sword {
+      position: absolute;
+      right: 8px;
+      top: 48px;
+      width: 8px;
+      height: 132px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #dbeafe, #64748b);
+      transform: rotate(28deg);
+      transform-origin: center;
+      opacity: 0.8;
+    }
+
+    .evolution-details {
+      display: grid;
+      gap: 10px;
+    }
+
+    .evolution-details strong {
+      font-size: 1.45rem;
+    }
+
+    .evolution-card .note {
+      color: #cbd5e1;
+    }
+
+    .evolution-card .progress-bar {
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    .evolution-card .progress-fill {
+      background: linear-gradient(90deg, #60a5fa, #ef4444, #facc15);
+    }
+
+    @keyframes pulseAura {
+      0%, 100% { transform: scale(0.92); opacity: 0.7; }
+      50% { transform: scale(1.05); opacity: 1; }
+    }
+
+    .quote {
+      font-size: 1.15rem;
+      line-height: 1.7;
+      color: #24303f;
+      margin: 0;
+    }
+
+    .week-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .week-progress {
+      height: 10px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(15, 23, 42, 0.08);
+    }
+
+    .week-progress span {
+      display: block;
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #0f766e, #facc15);
+    }
+
+    .quote-bank {
+      display: none;
+    }
+
+    .tiny {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    @media (max-width: 960px) {
+      .dashboard,
+      .goal-grid,
+      .money-grid,
+      .money-inputs {
+        grid-template-columns: 1fr;
+      }
+
+      .shell {
+        width: min(100% - 20px, 1180px);
+        margin-top: 20px;
+      }
+
+      .hero,
+      .panel {
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="dashboard">
+      <div class="stack">
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Goal Dashboard</h2>
+            </div>
+            <div class="pill" id="resetTime">Last saved just now</div>
+          </div>
+
+          <div class="goal-grid">
+            <section class="goal-card faith" data-goal="faith">
+              <h3>Faith</h3>
+              <p class="category-quote" data-quote-category="faith">"Prayer restrains from shameful and unjust deeds." Quran 29:45</p>
+              <div class="progress-meta">
+                <span>Faith progress</span>
+                <strong class="goal-percent">0%</strong>
+              </div>
+              <div class="progress-bar"><div class="progress-fill"></div></div>
+              <ul>
+                <li class="habit">
+                  <input id="faith-prayers" type="checkbox" data-group="faith" data-frequency="daily" />
+                  <label class="habit-text" for="faith-prayers">
+                    <strong>Pray 5 daily prayers <span class="frequency">daily</span></strong>
+                  </label>
+                </li>
+                <li class="habit">
+                  <input id="faith-istighfar" type="checkbox" data-group="faith" data-frequency="daily" />
+                  <label class="habit-text" for="faith-istighfar">
+                    <strong>Istighfar and dua <span class="frequency">daily</span></strong>
+                  </label>
+                </li>
+                <li class="habit">
+                  <input id="faith-quran-page" type="checkbox" data-group="faith" data-frequency="daily" />
+                  <label class="habit-text" for="faith-quran-page">
+                    <strong>1 page Quran <span class="frequency">daily</span></strong>
+                  </label>
+                </li>
+                <li class="habit">
+                  <input id="faith-translation" type="checkbox" data-group="faith" data-frequency="daily" />
+                  <label class="habit-text" for="faith-translation">
+                    <strong>1 page meal <span class="frequency">daily</span></strong>
+                  </label>
+                </li>
+                <li class="habit">
+                  <input id="faith-latif" type="checkbox" data-group="faith" data-frequency="daily" />
+                  <label class="habit-text" for="faith-latif">
+                    <strong>129 Ya Latif <span class="frequency">daily</span></strong>
+                  </label>
+                </li>
+              </ul>
+            </section>
+
+            <section class="goal-card image" data-goal="image">
+              <h3>Image</h3>
+              <p class="category-quote" data-quote-category="image">"The strong believer is better and more beloved to Allah than the weak believer." Sahih Muslim</p>
+              <div class="progress-meta">
+                <span>Image progress</span>
+                <strong class="goal-percent">0%</strong>
+              </div>
+              <div class="progress-bar"><div class="progress-fill"></div></div>
+              <ul>
+                <li class="habit">
+                  <input id="image-speech" type="checkbox" data-group="image" data-frequency="daily" />
+                  <label class="habit-text" for="image-speech">
+                    <strong>Talk calm, deep, and steady <span class="frequency">daily</span></strong>
+                  </label>
+                </li>
+                <li class="habit">
+                  <input id="image-gym" type="checkbox" data-group="image" data-frequency="daily" />
+                  <label class="habit-text" for="image-gym">
+                    <strong>Gym <span class="frequency">daily</span></strong>
+                  </label>
+                </li>
+                <li class="habit">
+                  <input id="image-grooming" type="checkbox" data-group="image" data-frequency="daily" />
+                  <label class="habit-text" for="image-grooming">
+                    <strong>Grooming and skincare <span class="frequency">daily</span></strong>
+                  </label>
+                </li>
+              </ul>
+            </section>
+
+            <section class="goal-card money" data-goal="money">
+              <h3>Money</h3>
+              <p class="category-quote" data-quote-category="money">"Man will only have that for which he strives." Quran 53:39</p>
+              <div class="progress-meta">
+                <span>2026 personal revenue progress</span>
+                <strong class="goal-percent" id="moneyPercent">0%</strong>
+              </div>
+              <div class="progress-bar"><div class="progress-fill" id="moneyBar"></div></div>
+              <div class="money-grid">
+                <div class="money-card">
+                  <strong id="revenueSoFar">$9,000</strong>
+                  <span>revenue so far in 2026</span>
+                </div>
+                <div class="money-card">
+                  <strong>$100,000</strong>
+                  <span>2026 personal revenue goal</span>
+                </div>
+              </div>
+              <div class="money-inputs">
+                <div class="habit">
+                  <input id="money-income-entered" type="checkbox" data-group="money" data-frequency="monthly" />
+                  <label class="habit-text" for="money-income-entered">
+                    <strong>Detail Cabinet income this month <span class="frequency">monthly</span></strong>
+                    <input id="monthlyIncome" type="number" min="0" step="50" value="0" />
+                  </label>
+                </div>
+                <div class="habit">
+                  <input id="money-invest-500" type="checkbox" data-group="money" data-frequency="monthly" />
+                  <label class="habit-text" for="money-invest-500">
+                    <strong>Invest $500 <span class="frequency">monthly</span></strong>
+                  </label>
+                </div>
+                <div class="habit">
+                  <input id="money-sell-project" type="checkbox" data-group="money" data-frequency="weekly" />
+                  <label class="habit-text" for="money-sell-project">
+                    <strong>Sell one project <span class="frequency">weekly</span></strong>
+                  </label>
+                </div>
+              </div>
+              <div class="money-summary">
+                <strong id="moneyGap">$91,000 left</strong>
+              </div>
+            </section>
+
+            <section class="goal-card school" data-goal="school">
+              <h3>School</h3>
+              <p class="category-quote" data-quote-category="school">"Whoever follows a path seeking knowledge, Allah makes easy for him a path to Paradise." Sahih Muslim</p>
+              <div class="progress-meta">
+                <span>School progress</span>
+                <strong class="goal-percent">0%</strong>
+              </div>
+              <div class="progress-bar"><div class="progress-fill"></div></div>
+              <ul>
+                <li class="habit">
+                  <input id="school-login" type="checkbox" data-group="school" data-frequency="daily" />
+                  <label class="habit-text" for="school-login">
+                    <strong>Class login &amp; assignments <span class="frequency">daily</span></strong>
+                  </label>
+                </li>
+                <li class="habit">
+                  <input id="school-review" type="checkbox" data-group="school" data-frequency="weekly" />
+                  <label class="habit-text" for="school-review">
+                    <strong>Academic review <span class="frequency">weekly</span></strong>
+                  </label>
+                </li>
+              </ul>
+            </section>
+          </div>
+        </article>
+      </div>
+
+      <div class="stack">
+        <article class="panel evolution-card">
+          <div class="panel-head">
+            <h2>Sasuke Evolution</h2>
+            <div class="pill" id="evolutionPoints">0 inputs</div>
+          </div>
+          <div class="evolution-stage">
+            <div class="aura"></div>
+            <div class="stage-image-wrap">
+              <img id="sasukeStageImage" class="stage-image" src="assets/sasuke/stage-01-academy-sasuke.png" alt="Academy Sasuke stage" />
+            </div>
+          </div>
+          <div class="evolution-details">
+            <strong id="evolutionName">Genin Sasuke</strong>
+            <span class="note" id="evolutionDescription">Start the path. Every completed input powers this week's evolution.</span>
+            <div class="progress-meta">
+              <span id="nextEvolution">10 inputs to next form</span>
+              <strong id="evolutionPercent">0%</strong>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" id="evolutionBar"></div></div>
+          </div>
+          <div class="tracker-stats">
+            <div class="stat">
+              <strong id="overallScore">0%</strong>
+              <span>Average Completion</span>
+            </div>
+            <div class="stat">
+              <strong id="moneyTotal">$9,000</strong>
+              <span>Personal Revenue</span>
+            </div>
+          </div>
+        </article>
+
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "personal-tracker-2026";
+    const TRACKING_START_DATE = "2026-04-13";
+    const STARTING_REVENUE = 9000;
+    const REVENUE_GOAL = 100000;
+    const QUOTE_BANK = {
+      faith: [
+        '"Prayer restrains from shameful and unjust deeds." Quran 29:45',
+        '"Remember Me; I will remember you." Quran 2:152',
+        '"Indeed, in the remembrance of Allah do hearts find rest." Quran 13:28',
+        '"The most beloved deeds to Allah are those done regularly, even if they are few." Bukhari and Muslim'
+      ],
+      image: [
+        '"The strong believer is better and more beloved to Allah than the weak believer." Sahih Muslim',
+        '"Allah is beautiful and He loves beauty." Sahih Muslim',
+        '"The best among you are those who have the best manners and character." Sahih al-Bukhari',
+        '"Waste no more time arguing what a good man should be. Be one." Marcus Aurelius'
+      ],
+      money: [
+        '"Man will only have that for which he strives." Quran 53:39',
+        '"When the prayer is finished, disperse through the land and seek Allah\'s bounty." Quran 62:10',
+        '"The upper hand is better than the lower hand." Sahih al-Bukhari',
+        '"Talent without working hard is nothing." Cristiano Ronaldo'
+      ],
+      school: [
+        '"Whoever follows a path seeking knowledge, Allah makes easy for him a path to Paradise." Sahih Muslim',
+        '"My Lord, increase me in knowledge." Quran 20:114',
+        '"Are those who know equal to those who do not know?" Quran 39:9',
+        '"A clean day of small wins can change the direction of a whole year."'
+      ]
+    };
+    const EVOLUTION_STAGES = [
+      {
+        image: "assets/sasuke/stage-01-academy-sasuke.png",
+        alt: "Academy Sasuke stage",
+        name: "Academy Sasuke",
+        description: "Stage 1 of the week. The reset point where discipline starts again."
+      },
+      {
+        image: "assets/sasuke/stage-02-genin-sasuke.png",
+        alt: "Genin Sasuke stage",
+        name: "Genin Sasuke",
+        description: "Early weekly momentum. You are showing up and building the base."
+      },
+      {
+        image: "assets/sasuke/stage-03-chunin-sasuke.png",
+        alt: "Chunin Sasuke stage",
+        name: "Chunin Sasuke",
+        description: "Your focus is sharpening. The week is starting to move in your favor."
+      },
+      {
+        image: "assets/sasuke/stage-04-curse-mark-sasuke.png",
+        alt: "Curse Mark Sasuke stage",
+        name: "Curse Mark Sasuke",
+        description: "The early discipline is becoming visible. You are building real consistency."
+      },
+      {
+        image: "assets/sasuke/stage-05-hebi-sasuke.png",
+        alt: "Hebi Sasuke stage",
+        name: "Hebi Sasuke",
+        description: "Halfway strength. You are no longer relying only on motivation."
+      },
+      {
+        image: "assets/sasuke/stage-06-taka-sasuke.png",
+        alt: "Taka Sasuke stage",
+        name: "Taka Sasuke",
+        description: "Consistency is now part of your identity. You move with purpose."
+      },
+      {
+        image: "assets/sasuke/stage-07-five-kage-summit-sasuke.png",
+        alt: "Five Kage Summit Sasuke stage",
+        name: "Five Kage Summit Sasuke",
+        description: "High intensity. Your weekly check-ins are becoming serious."
+      },
+      {
+        image: "assets/sasuke/stage-08-war-arc-sasuke.png",
+        alt: "War Arc Sasuke stage",
+        name: "War Arc Sasuke",
+        description: "You are pushing toward a complete week with real control."
+      },
+      {
+        image: "assets/sasuke/stage-09-rogue-sasuke.png",
+        alt: "Rogue Sasuke stage",
+        name: "Rogue Sasuke",
+        description: "Near final form. Only a few more check-ins separate you from the top."
+      },
+      {
+        image: "assets/sasuke/stage-10-adult-sasuke.png",
+        alt: "Adult Sasuke stage",
+        name: "Adult Sasuke",
+        description: "Stage 10. A complete week turns discipline into presence."
+      }
+    ];
+
+    const state = loadState();
+    const checkboxes = Array.from(document.querySelectorAll('input[type="checkbox"][data-group]'));
+    const goalCards = Array.from(document.querySelectorAll(".goal-card[data-goal]"));
+    const quoteElements = Array.from(document.querySelectorAll("[data-quote-category]"));
+    const monthlyIncomeInput = document.getElementById("monthlyIncome");
+    const overallScore = document.getElementById("overallScore");
+    const moneyTotal = document.getElementById("moneyTotal");
+    const revenueSoFar = document.getElementById("revenueSoFar");
+    const moneyPercent = document.getElementById("moneyPercent");
+    const moneyBar = document.getElementById("moneyBar");
+    const moneyGap = document.getElementById("moneyGap");
+    const resetTime = document.getElementById("resetTime");
+    const evolutionPoints = document.getElementById("evolutionPoints");
+    const evolutionName = document.getElementById("evolutionName");
+    const evolutionDescription = document.getElementById("evolutionDescription");
+    const nextEvolution = document.getElementById("nextEvolution");
+    const evolutionPercent = document.getElementById("evolutionPercent");
+    const evolutionBar = document.getElementById("evolutionBar");
+    const sasukeStageImage = document.getElementById("sasukeStageImage");
+
+    rollOverTracking();
+    updateDailyQuotes();
+    hydrate();
+    markCurrentCheckedInputsAsAwarded();
+    render();
+    setInterval(() => {
+      const previousMarker = state.activeDate + state.activeWeek + state.activeMonth;
+      rollOverTracking();
+      updateDailyQuotes();
+      const nextMarker = state.activeDate + state.activeWeek + state.activeMonth;
+      if (nextMarker !== previousMarker) {
+        hydrate();
+        render();
+      }
+    }, 60000);
+
+    checkboxes.forEach((box) => {
+      box.addEventListener("change", () => {
+        state.checks[box.id] = box.checked;
+        const awardKey = getAwardKey(box);
+        if (box.checked) {
+          state.awardedInputs[awardKey] = true;
+          state.weeklyInputEvents[awardKey] = true;
+        }
+        if (!box.checked) {
+          delete state.weeklyInputEvents[awardKey];
+        }
+        saveState();
+        render();
+      });
+    });
+
+    monthlyIncomeInput.addEventListener("input", () => {
+      state.monthlyRevenue[getMonthKey(new Date())] = sanitizeNumber(monthlyIncomeInput.value);
+      saveState();
+      render();
+    });
+
+    function hydrate() {
+      checkboxes.forEach((box) => {
+        box.checked = Boolean(state.checks[box.id]);
+      });
+      monthlyIncomeInput.value = getCurrentMonthRevenue();
+    }
+
+    function markCurrentCheckedInputsAsAwarded() {
+      let changed = false;
+      checkboxes.forEach((box) => {
+        const awardKey = getAwardKey(box);
+        if (box.checked) {
+          state.awardedInputs[awardKey] = true;
+          if (!state.weeklyInputEvents[awardKey]) {
+            state.weeklyInputEvents[awardKey] = true;
+            changed = true;
+          }
+        }
+      });
+      if (changed) {
+        saveState();
+      }
+    }
+
+    function render() {
+      overallScore.textContent = getAverageCompletion() + "%";
+
+      const groups = {
+        faith: checkboxes.filter((box) => box.dataset.group === "faith"),
+        image: checkboxes.filter((box) => box.dataset.group === "image"),
+        money: checkboxes.filter((box) => box.dataset.group === "money"),
+        school: checkboxes.filter((box) => box.dataset.group === "school")
+      };
+
+      goalCards.forEach((card) => {
+        const key = card.dataset.goal;
+        if (key === "money") {
+          return;
+        }
+        const items = groups[key];
+        const done = items.filter((box) => box.checked).length;
+        const pct = items.length ? Math.round((done / items.length) * 100) : 0;
+        card.querySelector(".goal-percent").textContent = pct + "%";
+        card.querySelector(".progress-fill").style.width = pct + "%";
+      });
+
+      const revenue = getTotalRevenue();
+      const moneyPct = Math.min(100, Math.round((revenue / REVENUE_GOAL) * 100));
+      moneyPercent.textContent = moneyPct + "%";
+      moneyBar.style.width = moneyPct + "%";
+      moneyTotal.textContent = formatMoney(revenue);
+      revenueSoFar.textContent = formatMoney(revenue);
+      const left = Math.max(0, REVENUE_GOAL - revenue);
+      moneyGap.textContent = left === 0 ? "Revenue target reached" : formatMoney(left) + " left";
+      renderEvolution();
+
+      resetTime.textContent = "Last saved " + formatTime(state.updatedAt);
+    }
+
+    function rollOverTracking() {
+      const today = getDateKey(new Date());
+      const currentWeek = getWeekKey(new Date());
+      const currentMonth = getMonthKey(new Date());
+
+      if (!state.activeDate) {
+        state.activeDate = today;
+      }
+      if (!state.activeWeek) {
+        state.activeWeek = currentWeek;
+      }
+      if (!state.activeMonth) {
+        state.activeMonth = currentMonth;
+        saveState();
+        return;
+      }
+
+      let changed = false;
+
+      if (state.activeDate !== today) {
+        state.dailyLog[state.activeDate] = getCompletionPercent("daily", state.checks);
+        clearChecksByFrequency("daily");
+        state.activeDate = today;
+        changed = true;
+      }
+
+      if (state.activeWeek !== currentWeek) {
+        state.weeklyLog[state.activeWeek] = getCompletionPercent("weekly", state.checks);
+        clearChecksByFrequency("weekly");
+        state.activeWeek = currentWeek;
+        state.weeklyInputEvents = {};
+        changed = true;
+      }
+
+      if (state.activeMonth !== currentMonth) {
+        state.monthlyLog[state.activeMonth] = getMonthlyCompletion(state.activeMonth);
+        clearChecksByFrequency("monthly");
+        state.activeMonth = currentMonth;
+        changed = true;
+      }
+
+      if (changed) {
+        saveState();
+      }
+    }
+
+    function clearChecksByFrequency(frequency) {
+      checkboxes
+        .filter((box) => box.dataset.frequency === frequency)
+        .forEach((box) => {
+          state.checks[box.id] = false;
+        });
+    }
+
+    function getCompletionPercent(frequency, checks) {
+      const items = checkboxes.filter((box) => box.dataset.frequency === frequency);
+      if (!items.length) {
+        return 0;
+      }
+      const completed = items.filter((box) => Boolean(checks[box.id])).length;
+      return Math.round((completed / items.length) * 100);
+    }
+
+    function getMonthlyCompletion(monthKey) {
+      if (monthKey === state.activeMonth) {
+        return getCompletionPercent("monthly", state.checks);
+      }
+      return sanitizeNumber(state.monthlyLog[monthKey]);
+    }
+
+    function getAverageCompletion() {
+      const today = new Date();
+      const start = parseDateKey(TRACKING_START_DATE);
+      let completedPoints = 0;
+      let possiblePoints = 0;
+      const dailyCount = getFrequencyCount("daily");
+      const weeklyCount = getFrequencyCount("weekly");
+      const monthlyCount = getFrequencyCount("monthly");
+
+      for (let date = new Date(start); date <= today; date = addDays(date, 1)) {
+        const key = getDateKey(date);
+        const pct = key === state.activeDate ? getCompletionPercent("daily", state.checks) : sanitizeNumber(state.dailyLog[key]);
+        completedPoints += (pct / 100) * dailyCount;
+        possiblePoints += dailyCount;
+      }
+
+      const seenWeeks = new Set();
+      for (let date = new Date(start); date <= today; date = addDays(date, 1)) {
+        const key = getWeekKey(date);
+        if (seenWeeks.has(key)) {
+          continue;
+        }
+        seenWeeks.add(key);
+        const pct = key === state.activeWeek ? getCompletionPercent("weekly", state.checks) : sanitizeNumber(state.weeklyLog[key]);
+        completedPoints += (pct / 100) * weeklyCount;
+        possiblePoints += weeklyCount;
+      }
+
+      const seenMonths = new Set();
+      for (let date = new Date(start); date <= today; date = addDays(date, 1)) {
+        const key = getMonthKey(date);
+        if (seenMonths.has(key)) {
+          continue;
+        }
+        seenMonths.add(key);
+        const pct = key === state.activeMonth ? getCompletionPercent("monthly", state.checks) : sanitizeNumber(state.monthlyLog[key]);
+        completedPoints += (pct / 100) * monthlyCount;
+        possiblePoints += monthlyCount;
+      }
+
+      if (!possiblePoints) {
+        return 0;
+      }
+
+      return Math.round((completedPoints / possiblePoints) * 100);
+    }
+
+    function getFrequencyCount(frequency) {
+      return checkboxes.filter((box) => box.dataset.frequency === frequency).length;
+    }
+
+    function getAwardKey(box) {
+      return `${box.id}:${getFrequencyPeriod(box.dataset.frequency)}`;
+    }
+
+    function getFrequencyPeriod(frequency) {
+      if (frequency === "weekly") {
+        return state.activeWeek;
+      }
+      if (frequency === "monthly") {
+        return state.activeMonth;
+      }
+      return state.activeDate;
+    }
+
+    function updateDailyQuotes() {
+      const today = getDateKey(new Date());
+      let changed = false;
+
+      quoteElements.forEach((element, categoryIndex) => {
+        const category = element.dataset.quoteCategory;
+        const quotes = QUOTE_BANK[category] || [];
+        if (!quotes.length) {
+          return;
+        }
+
+        const days = daysBetween(parseDateKey(TRACKING_START_DATE), new Date());
+        let quoteIndex = (days + categoryIndex) % quotes.length;
+        const previous = state.lastQuotes[category];
+
+        if (previous && previous.date !== today && previous.index === quoteIndex) {
+          quoteIndex = (quoteIndex + 1) % quotes.length;
+        }
+
+        element.textContent = quotes[quoteIndex];
+        if (!previous || previous.date !== today || previous.index !== quoteIndex) {
+          state.lastQuotes[category] = { date: today, index: quoteIndex };
+          changed = true;
+        }
+      });
+
+      if (changed) {
+        saveState();
+      }
+    }
+
+    function getCurrentMonthRevenue() {
+      return sanitizeNumber(state.monthlyRevenue[getMonthKey(new Date())]);
+    }
+
+    function getTotalRevenue() {
+      return STARTING_REVENUE + Object.values(state.monthlyRevenue).reduce((total, amount) => {
+        return total + sanitizeNumber(amount);
+      }, 0);
+    }
+
+    function renderEvolution() {
+      const points = getWeeklyInputCount();
+      const weeklyMax = getMaxWeeklyInputs();
+      const stageIndex = getStageIndex(points, weeklyMax);
+      const stage = EVOLUTION_STAGES[stageIndex];
+      const nextStage = EVOLUTION_STAGES[stageIndex + 1];
+
+      evolutionPoints.textContent = points + " / " + weeklyMax + " weekly inputs";
+      evolutionName.textContent = stage.name;
+      evolutionDescription.textContent = stage.description;
+      sasukeStageImage.src = stage.image;
+      sasukeStageImage.alt = stage.alt;
+      document.querySelector(".evolution-card").dataset.form = stageIndex;
+
+      if (!nextStage) {
+        nextEvolution.textContent = "Final form reached";
+        evolutionPercent.textContent = "100%";
+        evolutionBar.style.width = "100%";
+        return;
+      }
+
+      const currentThreshold = getStageThreshold(stageIndex, weeklyMax);
+      const nextThreshold = getStageThreshold(stageIndex + 1, weeklyMax);
+      const stageSpan = Math.max(1, nextThreshold - currentThreshold);
+      const stageProgress = Math.max(0, points - currentThreshold);
+      const pct = Math.min(100, Math.round((stageProgress / stageSpan) * 100));
+      const remaining = Math.max(0, nextThreshold - points);
+      nextEvolution.textContent = remaining + " inputs to " + nextStage.name;
+      evolutionPercent.textContent = pct + "%";
+      evolutionBar.style.width = pct + "%";
+    }
+
+    function getWeeklyInputCount() {
+      return Object.values(state.weeklyInputEvents).filter(Boolean).length;
+    }
+
+    function getMaxWeeklyInputs() {
+      const dailyCount = getFrequencyCount("daily") * 7;
+      const weeklyCount = getFrequencyCount("weekly");
+      const monthlyCount = getFrequencyCount("monthly");
+      return Math.max(1, dailyCount + weeklyCount + monthlyCount);
+    }
+
+    function getStageIndex(points, weeklyMax) {
+      if (points <= 0) {
+        return 0;
+      }
+      return Math.min(EVOLUTION_STAGES.length - 1, Math.floor((points * EVOLUTION_STAGES.length) / weeklyMax));
+    }
+
+    function getStageThreshold(stageIndex, weeklyMax) {
+      if (stageIndex <= 0) {
+        return 0;
+      }
+      return Math.ceil((stageIndex * weeklyMax) / EVOLUTION_STAGES.length);
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          return defaultState();
+        }
+        const parsed = JSON.parse(raw);
+        return {
+          checks: parsed.checks || {},
+          activeDate: parsed.activeDate || "",
+          activeWeek: parsed.activeWeek || "",
+          activeMonth: parsed.activeMonth || "",
+          dailyLog: parsed.dailyLog || {},
+          weeklyLog: parsed.weeklyLog || {},
+          monthlyLog: parsed.monthlyLog || {},
+          monthlyRevenue: normalizeMonthlyRevenue(parsed),
+          awardedInputs: parsed.awardedInputs || {},
+          weeklyInputEvents: parsed.weeklyInputEvents || {},
+          lastQuotes: parsed.lastQuotes || {},
+          updatedAt: parsed.updatedAt || new Date().toISOString()
+        };
+      } catch (error) {
+        return defaultState();
+      }
+    }
+
+    function defaultState() {
+      return {
+        checks: {},
+        activeDate: getDateKey(new Date()),
+        activeWeek: getWeekKey(new Date()),
+        activeMonth: getMonthKey(new Date()),
+        dailyLog: {},
+        weeklyLog: {},
+        monthlyLog: {},
+        monthlyRevenue: {},
+        awardedInputs: {},
+        weeklyInputEvents: {},
+        lastQuotes: {},
+        updatedAt: new Date().toISOString()
+      };
+    }
+
+    function normalizeMonthlyRevenue(parsed) {
+      const monthlyRevenue = parsed.monthlyRevenue || {};
+      const legacyAmount = sanitizeNumber(parsed.monthlySalary || 0);
+      if (legacyAmount > 0 && !monthlyRevenue[getMonthKey(new Date())]) {
+        monthlyRevenue[getMonthKey(new Date())] = legacyAmount;
+      }
+      return monthlyRevenue;
+    }
+
+    function saveState() {
+      state.updatedAt = new Date().toISOString();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function sanitizeNumber(value) {
+      const number = Number(value);
+      return Number.isFinite(number) && number >= 0 ? number : 0;
+    }
+
+    function formatMoney(value) {
+      return new Intl.NumberFormat(undefined, {
+        style: "currency",
+        currency: "USD",
+        maximumFractionDigits: 0
+      }).format(value);
+    }
+
+    function formatTime(isoString) {
+      return new Date(isoString).toLocaleString(undefined, {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit"
+      });
+    }
+
+    function getDateKey(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function parseDateKey(key) {
+      const [year, month, day] = key.split("-").map(Number);
+      return new Date(year, month - 1, day);
+    }
+
+    function getWeekKey(date) {
+      return getDateKey(getWeekStartSunday(date));
+    }
+
+    function getMonthKey(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      return `${year}-${month}`;
+    }
+
+    function getWeekStartSunday(date) {
+      const copy = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const day = copy.getDay();
+      return addDays(copy, -day);
+    }
+
+    function addDays(date, days) {
+      const copy = new Date(date);
+      copy.setDate(copy.getDate() + days);
+      return copy;
+    }
+
+    function daysBetween(start, end) {
+      const startDate = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+      const endDate = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+      return Math.max(0, Math.floor((endDate - startDate) / 86400000));
+    }
+  </script>
+</body>
+</html>
