@@ -148,6 +148,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
       gap: 12px;
       margin-bottom: 18px;
     }
@@ -162,6 +163,71 @@
       color: var(--muted);
       background: rgba(255, 255, 255, 0.8);
       border: 1px solid rgba(31, 41, 55, 0.08);
+    }
+
+    .sync-panel {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .sync-form {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .sync-form input {
+      width: 150px;
+      border: 1px solid rgba(31, 41, 55, 0.1);
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 12px;
+      padding: 9px 10px;
+      font: inherit;
+      font-size: 0.86rem;
+      color: var(--text);
+    }
+
+    .sync-button {
+      border: 0;
+      border-radius: 999px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: white;
+      font: inherit;
+      font-size: 0.84rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .sync-button.secondary {
+      background: rgba(15, 118, 110, 0.12);
+      color: var(--accent);
+    }
+
+    .sync-status {
+      min-width: 120px;
+      justify-content: center;
+    }
+
+    .sync-message {
+      flex-basis: 100%;
+      margin: 2px 0 0;
+      color: #475569;
+      font-size: 0.9rem;
+      line-height: 1.4;
+      text-align: right;
+    }
+
+    .sync-message[data-tone="error"] {
+      color: #b91c1c;
+    }
+
+    .sync-message[data-tone="success"] {
+      color: #0f766e;
     }
 
     .goal-grid {
@@ -622,6 +688,14 @@
       .panel {
         padding: 20px;
       }
+
+      .sync-panel {
+        justify-content: flex-start;
+      }
+
+      .sync-form input {
+        width: min(100%, 170px);
+      }
     }
   </style>
 </head>
@@ -634,7 +708,18 @@
             <div>
               <h2>Goal Dashboard</h2>
             </div>
-            <div class="pill" id="resetTime">Last saved just now</div>
+            <div class="sync-panel">
+              <form class="sync-form" id="syncForm">
+                <input id="syncEmail" type="email" autocomplete="email" placeholder="Email" />
+                <input id="syncPassword" type="password" autocomplete="current-password" placeholder="Password" />
+                <button class="sync-button" type="submit">Sign in</button>
+                <button class="sync-button secondary" id="syncSignUp" type="button">Sign up</button>
+              </form>
+              <button class="sync-button secondary" id="syncSignOut" type="button" hidden>Sign out</button>
+              <div class="pill sync-status" id="syncStatus">Local only</div>
+              <div class="pill" id="resetTime">Last saved just now</div>
+              <p class="sync-message" id="syncMessage">Sign in to sync across devices.</p>
+            </div>
           </div>
 
           <div class="goal-grid">
@@ -755,10 +840,10 @@
             </section>
 
             <section class="goal-card school" data-goal="school">
-              <h3>School</h3>
+              <h3>Education</h3>
               <p class="category-quote" data-quote-category="school">"Whoever follows a path seeking knowledge, Allah makes easy for him a path to Paradise." Sahih Muslim</p>
               <div class="progress-meta">
-                <span>School progress</span>
+                <span>Education progress</span>
                 <strong class="goal-percent">0%</strong>
               </div>
               <div class="progress-bar"><div class="progress-fill"></div></div>
@@ -767,6 +852,12 @@
                   <input id="school-login" type="checkbox" data-group="school" data-frequency="daily" />
                   <label class="habit-text" for="school-login">
                     <strong>Class login &amp; assignments <span class="frequency">daily</span></strong>
+                  </label>
+                </li>
+                <li class="habit">
+                  <input id="school-read-pages" type="checkbox" data-group="school" data-frequency="daily" />
+                  <label class="habit-text" for="school-read-pages">
+                    <strong>Read 5 pages <span class="frequency">daily</span></strong>
                   </label>
                 </li>
                 <li class="habit">
@@ -818,11 +909,16 @@
     </section>
   </main>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     const STORAGE_KEY = "personal-tracker-2026";
     const TRACKING_START_DATE = "2026-04-13";
     const STARTING_REVENUE = 9000;
     const REVENUE_GOAL = 100000;
+    const SUPABASE_URL = "https://yyhdgxynwbjanrtljlll.supabase.co";
+    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_CTgF2-u8Xi5flzdxaRs7cw_F6m2XH7V";
+    const CLOUD_TABLE = "tracker_states";
+    const STATE_VERSION = 1;
     const QUOTE_BANK = {
       faith: [
         '"Prayer restrains from shameful and unjust deeds." Quran 29:45',
@@ -834,19 +930,25 @@
         '"The strong believer is better and more beloved to Allah than the weak believer." Sahih Muslim',
         '"Allah is beautiful and He loves beauty." Sahih Muslim',
         '"The best among you are those who have the best manners and character." Sahih al-Bukhari',
-        '"Waste no more time arguing what a good man should be. Be one." Marcus Aurelius'
+        '"Allah does not look at your appearance or wealth, but He looks at your hearts and deeds." Sahih Muslim'
       ],
       money: [
         '"Man will only have that for which he strives." Quran 53:39',
         '"When the prayer is finished, disperse through the land and seek Allah\'s bounty." Quran 62:10',
         '"The upper hand is better than the lower hand." Sahih al-Bukhari',
-        '"Talent without working hard is nothing." Cristiano Ronaldo'
+        '"The truthful and trustworthy merchant is with the prophets, the truthful, and the martyrs." Tirmidhi'
       ],
       school: [
         '"Whoever follows a path seeking knowledge, Allah makes easy for him a path to Paradise." Sahih Muslim',
         '"My Lord, increase me in knowledge." Quran 20:114',
         '"Are those who know equal to those who do not know?" Quran 39:9',
-        '"A clean day of small wins can change the direction of a whole year."'
+        '"Seeking knowledge is an obligation upon every Muslim." Ibn Majah'
+      ],
+      evolution: [
+        '"Don\'t stop when you\'re tired. Stop when you\'re done." David Goggins',
+        '"Talent without working hard is nothing." Cristiano Ronaldo',
+        '"Everything negative - pressure, challenges - is all an opportunity for me to rise." Kobe Bryant',
+        '"I\'ve failed over and over and over again in my life. And that is why I succeed." Michael Jordan'
       ]
     };
     const EVOLUTION_STAGES = [
@@ -854,7 +956,7 @@
         image: "assets/sasuke/stage-01-academy-sasuke.png",
         alt: "Academy Sasuke stage",
         name: "Academy Sasuke",
-        description: "Stage 1 of the week. The reset point where discipline starts again."
+        description: '"Don\'t stop when you\'re tired. Stop when you\'re done." David Goggins'
       },
       {
         image: "assets/sasuke/stage-02-genin-sasuke.png",
@@ -931,12 +1033,27 @@
     const evolutionPercent = document.getElementById("evolutionPercent");
     const evolutionBar = document.getElementById("evolutionBar");
     const sasukeStageImage = document.getElementById("sasukeStageImage");
+    const syncForm = document.getElementById("syncForm");
+    const syncEmail = document.getElementById("syncEmail");
+    const syncPassword = document.getElementById("syncPassword");
+    const syncSignUp = document.getElementById("syncSignUp");
+    const syncSignOut = document.getElementById("syncSignOut");
+    const syncStatus = document.getElementById("syncStatus");
+    const syncMessage = document.getElementById("syncMessage");
+    const supabaseClient = window.supabase
+      ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY)
+      : null;
+    let currentUser = null;
+    let cloudSaveTimer = null;
+    let remoteChannel = null;
+    let applyingRemoteState = false;
 
     rollOverTracking();
     updateDailyQuotes();
     hydrate();
     markCurrentCheckedInputsAsAwarded();
     render();
+    initSupabaseSync();
     setInterval(() => {
       const previousMarker = state.activeDate + state.activeWeek + state.activeMonth;
       rollOverTracking();
@@ -947,6 +1064,19 @@
         render();
       }
     }, 60000);
+
+    syncForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      await signInToSync();
+    });
+
+    syncSignUp.addEventListener("click", async () => {
+      await signUpForSync();
+    });
+
+    syncSignOut.addEventListener("click", async () => {
+      await signOutOfSync();
+    });
 
     checkboxes.forEach((box) => {
       box.addEventListener("change", () => {
@@ -1027,6 +1157,208 @@
       renderEvolution();
 
       resetTime.textContent = "Last saved " + formatTime(state.updatedAt);
+    }
+
+    async function initSupabaseSync() {
+      if (!supabaseClient) {
+        setSyncStatus("Sync unavailable", "Supabase could not load. Make sure you are online, then refresh.", "error");
+        return;
+      }
+
+      const { data } = await supabaseClient.auth.getSession();
+      await applyAuthSession(data.session);
+
+      supabaseClient.auth.onAuthStateChange(async (_event, session) => {
+        await applyAuthSession(session);
+      });
+    }
+
+    async function signInToSync() {
+      if (!supabaseClient) {
+        setSyncStatus("Sync unavailable", "Supabase could not load. Make sure you are online, then refresh.", "error");
+        return;
+      }
+      const email = syncEmail.value.trim();
+      const password = syncPassword.value;
+      if (!email || !password) {
+        setSyncStatus("Enter login", "Type your email and password first.", "error");
+        return;
+      }
+      setSyncStatus("Signing in...", "Checking your account...");
+      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      if (error) {
+        setSyncStatus("Sign in failed", error.message, "error");
+      }
+    }
+
+    async function signUpForSync() {
+      if (!supabaseClient) {
+        setSyncStatus("Sync unavailable", "Supabase could not load. Make sure you are online, then refresh.", "error");
+        return;
+      }
+      const email = syncEmail.value.trim();
+      const password = syncPassword.value;
+      if (!email || password.length < 6) {
+        setSyncStatus("Use 6+ chars", "Type your email and a password with at least 6 characters.", "error");
+        return;
+      }
+      setSyncStatus("Creating account...", "Sending the signup request to Supabase...");
+      const { error } = await supabaseClient.auth.signUp({ email, password });
+      if (error) {
+        setSyncStatus("Signup failed", error.message, "error");
+        return;
+      }
+      setSyncStatus("Check email", "Account created. Check your email for a confirmation link, then come back and sign in.", "success");
+    }
+
+    async function signOutOfSync() {
+      if (!supabaseClient) {
+        return;
+      }
+      setSyncStatus("Signing out...", "Ending this device's cloud sync session...");
+      await supabaseClient.auth.signOut();
+      currentUser = null;
+      showSyncSignedOut();
+      unsubscribeFromRemoteState();
+      setSyncStatus("Local only", "Signed out. This device will keep saving locally.");
+    }
+
+    async function applyAuthSession(session) {
+      currentUser = session?.user || null;
+      if (!currentUser) {
+        showSyncSignedOut();
+        unsubscribeFromRemoteState();
+        setSyncStatus("Local only", "Sign in to sync across devices.");
+        return;
+      }
+
+      showSyncSignedIn();
+      setSyncStatus("Syncing...", "Loading your cloud tracker data...");
+      await loadCloudState();
+      subscribeToRemoteState();
+    }
+
+    function showSyncSignedIn() {
+      syncForm.hidden = true;
+      syncSignOut.hidden = false;
+    }
+
+    function showSyncSignedOut() {
+      syncForm.hidden = false;
+      syncSignOut.hidden = true;
+    }
+
+    async function loadCloudState() {
+      if (!currentUser) {
+        return;
+      }
+
+      const { data, error } = await supabaseClient
+        .from(CLOUD_TABLE)
+        .select("state, updated_at")
+        .eq("user_id", currentUser.id)
+        .maybeSingle();
+
+      if (error) {
+        setSyncStatus("Setup needed", "Supabase table or security policy is missing. Run the setup SQL first.", "error");
+        return;
+      }
+
+      if (data?.state) {
+        const remoteState = normalizeState(data.state);
+        const remoteTime = new Date(remoteState.updatedAt || data.updated_at || 0).getTime();
+        const localTime = new Date(state.updatedAt || 0).getTime();
+        if (remoteTime > localTime) {
+          applyingRemoteState = true;
+          Object.assign(state, remoteState);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          rollOverTracking();
+          updateDailyQuotes();
+          hydrate();
+          render();
+          applyingRemoteState = false;
+          setSyncStatus("Synced", "Loaded your latest cloud tracker data.", "success");
+          return;
+        }
+      }
+
+      await saveStateToCloud();
+    }
+
+    function subscribeToRemoteState() {
+      unsubscribeFromRemoteState();
+      if (!currentUser) {
+        return;
+      }
+      remoteChannel = supabaseClient
+        .channel("tracker-state-" + currentUser.id)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: CLOUD_TABLE,
+            filter: "user_id=eq." + currentUser.id
+          },
+          (payload) => {
+            const remoteState = payload.new?.state;
+            if (!remoteState) {
+              return;
+            }
+            const nextState = normalizeState(remoteState);
+            const remoteTime = new Date(nextState.updatedAt || payload.new.updated_at || 0).getTime();
+            const localTime = new Date(state.updatedAt || 0).getTime();
+            if (remoteTime <= localTime) {
+              return;
+            }
+            applyingRemoteState = true;
+            Object.assign(state, nextState);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            hydrate();
+            render();
+            applyingRemoteState = false;
+            setSyncStatus("Synced", "Updated from another signed-in device.", "success");
+          }
+        )
+        .subscribe();
+    }
+
+    function unsubscribeFromRemoteState() {
+      if (remoteChannel) {
+        supabaseClient.removeChannel(remoteChannel);
+        remoteChannel = null;
+      }
+    }
+
+    function queueCloudSave() {
+      if (!currentUser || applyingRemoteState) {
+        return;
+      }
+      setSyncStatus("Saving...", "Saving your tracker to Supabase...");
+      clearTimeout(cloudSaveTimer);
+      cloudSaveTimer = setTimeout(saveStateToCloud, 650);
+    }
+
+    async function saveStateToCloud() {
+      if (!currentUser) {
+        return;
+      }
+      const { error } = await supabaseClient.from(CLOUD_TABLE).upsert({
+        user_id: currentUser.id,
+        state: { ...state, version: STATE_VERSION },
+        updated_at: state.updatedAt
+      });
+      setSyncStatus(
+        error ? "Sync error" : "Synced",
+        error ? error.message : "Saved to Supabase.",
+        error ? "error" : "success"
+      );
+    }
+
+    function setSyncStatus(label, detail = "", tone = "") {
+      syncStatus.textContent = label;
+      syncMessage.textContent = detail || label;
+      syncMessage.dataset.tone = tone;
     }
 
     function rollOverTracking() {
@@ -1168,11 +1500,10 @@
       const today = getDateKey(new Date());
       let changed = false;
 
-      quoteElements.forEach((element, categoryIndex) => {
-        const category = element.dataset.quoteCategory;
+      const getRotatingQuote = (category, categoryIndex) => {
         const quotes = QUOTE_BANK[category] || [];
         if (!quotes.length) {
-          return;
+          return "";
         }
 
         const days = daysBetween(parseDateKey(TRACKING_START_DATE), new Date());
@@ -1183,12 +1514,23 @@
           quoteIndex = (quoteIndex + 1) % quotes.length;
         }
 
-        element.textContent = quotes[quoteIndex];
         if (!previous || previous.date !== today || previous.index !== quoteIndex) {
           state.lastQuotes[category] = { date: today, index: quoteIndex };
           changed = true;
         }
+
+        return quotes[quoteIndex];
+      };
+
+      quoteElements.forEach((element, categoryIndex) => {
+        const category = element.dataset.quoteCategory;
+        const quote = getRotatingQuote(category, categoryIndex);
+        if (quote) {
+          element.textContent = quote;
+        }
       });
+
+      state.dailyEvolutionQuote = getRotatingQuote("evolution", quoteElements.length);
 
       if (changed) {
         saveState();
@@ -1211,10 +1553,11 @@
       const stageIndex = getStageIndex(points, weeklyMax);
       const stage = EVOLUTION_STAGES[stageIndex];
       const nextStage = EVOLUTION_STAGES[stageIndex + 1];
+      const stageDescription = stageIndex === 0 ? state.dailyEvolutionQuote || stage.description : stage.description;
 
       evolutionPoints.textContent = points + " / " + weeklyMax + " weekly inputs";
       evolutionName.textContent = stage.name;
-      evolutionDescription.textContent = stage.description;
+      evolutionDescription.textContent = stageDescription;
       sasukeStageImage.src = stage.image;
       sasukeStageImage.alt = stage.alt;
       document.querySelector(".evolution-card").dataset.form = stageIndex;
@@ -1269,27 +1612,35 @@
           return defaultState();
         }
         const parsed = JSON.parse(raw);
-        return {
-          checks: parsed.checks || {},
-          activeDate: parsed.activeDate || "",
-          activeWeek: parsed.activeWeek || "",
-          activeMonth: parsed.activeMonth || "",
-          dailyLog: parsed.dailyLog || {},
-          weeklyLog: parsed.weeklyLog || {},
-          monthlyLog: parsed.monthlyLog || {},
-          monthlyRevenue: normalizeMonthlyRevenue(parsed),
-          awardedInputs: parsed.awardedInputs || {},
-          weeklyInputEvents: parsed.weeklyInputEvents || {},
-          lastQuotes: parsed.lastQuotes || {},
-          updatedAt: parsed.updatedAt || new Date().toISOString()
-        };
+        return normalizeState(parsed);
       } catch (error) {
         return defaultState();
       }
     }
 
+    function normalizeState(savedState) {
+      const parsed = savedState || {};
+      return {
+        version: parsed.version || STATE_VERSION,
+        checks: parsed.checks || {},
+        activeDate: parsed.activeDate || "",
+        activeWeek: parsed.activeWeek || "",
+        activeMonth: parsed.activeMonth || "",
+        dailyLog: parsed.dailyLog || {},
+        weeklyLog: parsed.weeklyLog || {},
+        monthlyLog: parsed.monthlyLog || {},
+        monthlyRevenue: normalizeMonthlyRevenue(parsed),
+        awardedInputs: parsed.awardedInputs || {},
+        weeklyInputEvents: parsed.weeklyInputEvents || {},
+        lastQuotes: parsed.lastQuotes || {},
+        dailyEvolutionQuote: parsed.dailyEvolutionQuote || "",
+        updatedAt: parsed.updatedAt || new Date().toISOString()
+      };
+    }
+
     function defaultState() {
       return {
+        version: STATE_VERSION,
         checks: {},
         activeDate: getDateKey(new Date()),
         activeWeek: getWeekKey(new Date()),
@@ -1301,6 +1652,7 @@
         awardedInputs: {},
         weeklyInputEvents: {},
         lastQuotes: {},
+        dailyEvolutionQuote: "",
         updatedAt: new Date().toISOString()
       };
     }
@@ -1315,8 +1667,10 @@
     }
 
     function saveState() {
+      state.version = STATE_VERSION;
       state.updatedAt = new Date().toISOString();
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      queueCloudSave();
     }
 
     function sanitizeNumber(value) {
