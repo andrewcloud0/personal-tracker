@@ -1272,11 +1272,11 @@
           applyingRemoteState = true;
           Object.assign(state, remoteState);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          applyingRemoteState = false;
           rollOverTracking();
           updateDailyQuotes();
           hydrate();
           render();
-          applyingRemoteState = false;
           setSyncStatus("Synced", "Loaded your latest cloud tracker data.", "success");
           return;
         }
@@ -1314,9 +1314,11 @@
             applyingRemoteState = true;
             Object.assign(state, nextState);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            applyingRemoteState = false;
+            rollOverTracking();
+            updateDailyQuotes();
             hydrate();
             render();
-            applyingRemoteState = false;
             setSyncStatus("Synced", "Updated from another signed-in device.", "success");
           }
         )
@@ -1708,7 +1710,7 @@
     }
 
     function getWeekKey(date) {
-      return getDateKey(getWeekStartSunday(date));
+      return getDateKey(getWeekStartMonday(date));
     }
 
     function getMonthKey(date) {
@@ -1717,10 +1719,11 @@
       return `${year}-${month}`;
     }
 
-    function getWeekStartSunday(date) {
+    function getWeekStartMonday(date) {
       const copy = new Date(date.getFullYear(), date.getMonth(), date.getDate());
       const day = copy.getDay();
-      return addDays(copy, -day);
+      const daysSinceMonday = (day + 6) % 7;
+      return addDays(copy, -daysSinceMonday);
     }
 
     function addDays(date, days) {
