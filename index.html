@@ -1047,14 +1047,15 @@
     let cloudSaveTimer = null;
     let remoteChannel = null;
     let applyingRemoteState = false;
+    let initialSyncResolved = false;
 
-    rollOverTracking();
-    updateDailyQuotes();
     hydrate();
-    markCurrentCheckedInputsAsAwarded();
     render();
     initSupabaseSync();
     setInterval(() => {
+      if (!initialSyncResolved) {
+        return;
+      }
       const previousMarker = state.activeDate + state.activeWeek + state.activeMonth;
       rollOverTracking();
       updateDailyQuotes();
@@ -1076,6 +1077,16 @@
 
     syncSignOut.addEventListener("click", async () => {
       await signOutOfSync();
+    });
+
+    window.addEventListener("focus", () => {
+      refreshCloudState();
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) {
+        refreshCloudState();
+      }
     });
 
     checkboxes.forEach((box) => {
@@ -1124,6 +1135,14 @@
       }
     }
 
+    function prepareTrackerState() {
+      rollOverTracking();
+      updateDailyQuotes();
+      hydrate();
+      markCurrentCheckedInputsAsAwarded();
+      render();
+    }
+
     function render() {
       overallScore.textContent = getAverageCompletion() + "%";
 
@@ -1162,6 +1181,8 @@
     async function initSupabaseSync() {
       if (!supabaseClient) {
         setSyncStatus("Sync unavailable", "Supabase could not load. Make sure you are online, then refresh.", "error");
+        initialSyncResolved = true;
+        prepareTrackerState();
         return;
       }
 
@@ -1229,13 +1250,20 @@
         showSyncSignedOut();
         unsubscribeFromRemoteState();
         setSyncStatus("Local only", "Sign in to sync across devices.");
+        initialSyncResolved = true;
+        prepareTrackerState();
         return;
       }
 
       showSyncSignedIn();
       setSyncStatus("Syncing...", "Loading your cloud tracker data...");
-      await loadCloudState();
+      const hasCloudState = await loadCloudState({ preferRemote: true });
+      prepareTrackerState();
+      if (!hasCloudState) {
+        await saveStateToCloud();
+      }
       subscribeToRemoteState();
+      initialSyncResolved = true;
     }
 
     function showSyncSignedIn() {
@@ -1248,9 +1276,9 @@
       syncSignOut.hidden = true;
     }
 
-    async function loadCloudState() {
+    async function loadCloudState({ preferRemote = false } = {}) {
       if (!currentUser) {
-        return;
+        return false;
       }
 
       const { data, error } = await supabaseClient
@@ -1261,28 +1289,32 @@
 
       if (error) {
         setSyncStatus("Setup needed", "Supabase table or security policy is missing. Run the setup SQL first.", "error");
-        return;
+        return false;
       }
 
       if (data?.state) {
         const remoteState = normalizeState(data.state);
         const remoteTime = new Date(remoteState.updatedAt || data.updated_at || 0).getTime();
         const localTime = new Date(state.updatedAt || 0).getTime();
-        if (remoteTime > localTime) {
+        if (preferRemote || remoteTime > localTime) {
           applyingRemoteState = true;
           Object.assign(state, remoteState);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
           applyingRemoteState = false;
-          rollOverTracking();
-          updateDailyQuotes();
-          hydrate();
-          render();
           setSyncStatus("Synced", "Loaded your latest cloud tracker data.", "success");
-          return;
         }
+        return true;
       }
 
-      await saveStateToCloud();
+      return false;
+    }
+
+    async function refreshCloudState() {
+      if (!currentUser || !initialSyncResolved) {
+        return;
+      }
+      await loadCloudState();
+      prepareTrackerState();
     }
 
     function subscribeToRemoteState() {
@@ -1315,10 +1347,7 @@
             Object.assign(state, nextState);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
             applyingRemoteState = false;
-            rollOverTracking();
-            updateDailyQuotes();
-            hydrate();
-            render();
+            prepareTrackerState();
             setSyncStatus("Synced", "Updated from another signed-in device.", "success");
           }
         )
