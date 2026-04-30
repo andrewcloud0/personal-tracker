@@ -912,13 +912,14 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     const STORAGE_KEY = "personal-tracker-2026";
-    const TRACKING_START_DATE = "2026-04-13";
+    const TRACKING_START_DATE = "2026-04-30";
     const STARTING_REVENUE = 9000;
     const REVENUE_GOAL = 100000;
     const SUPABASE_URL = "https://yyhdgxynwbjanrtljlll.supabase.co";
     const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_CTgF2-u8Xi5flzdxaRs7cw_F6m2XH7V";
     const CLOUD_TABLE = "tracker_states";
     const STATE_VERSION = 1;
+    const PROGRESS_RESET_ID = "fresh-start-2026-04-30";
     const QUOTE_BANK = {
       faith: [
         '"Prayer restrains from shameful and unjust deeds." Quran 29:45',
@@ -1136,11 +1137,23 @@
     }
 
     function prepareTrackerState() {
+      applyOneTimeProgressReset();
       rollOverTracking();
       updateDailyQuotes();
       hydrate();
       markCurrentCheckedInputsAsAwarded();
       render();
+    }
+
+    function applyOneTimeProgressReset() {
+      if (state.progressResetId === PROGRESS_RESET_ID) {
+        return;
+      }
+      Object.assign(state, defaultState(), {
+        progressResetId: PROGRESS_RESET_ID,
+        updatedAt: new Date().toISOString()
+      });
+      saveState();
     }
 
     function render() {
@@ -1665,6 +1678,7 @@
         weeklyInputEvents: parsed.weeklyInputEvents || {},
         lastQuotes: parsed.lastQuotes || {},
         dailyEvolutionQuote: parsed.dailyEvolutionQuote || "",
+        progressResetId: parsed.progressResetId || "",
         updatedAt: parsed.updatedAt || new Date().toISOString()
       };
     }
@@ -1684,6 +1698,7 @@
         weeklyInputEvents: {},
         lastQuotes: {},
         dailyEvolutionQuote: "",
+        progressResetId: PROGRESS_RESET_ID,
         updatedAt: new Date().toISOString()
       };
     }
